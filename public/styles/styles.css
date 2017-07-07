@@ -1,0 +1,9 @@
+body {
+  font-family: "Helvetica", sans-serif;
+  color: blue;
+  margin: 2em;
+}
+
+.nav a  {
+  padding: 0 20px;
+}
