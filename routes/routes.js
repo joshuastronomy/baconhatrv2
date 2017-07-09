@@ -1,44 +1,130 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
+const session = require('express-session');
 const hatrs = require('../models/models');
+const messages = require('../models/message');
 
+const authenticated = function(req, res, next) {
+  if (req.session && req.session.hatr) return next();
+  return res.redirect('/login');
+}
 
 router.get('/', (req, res) => {
-  // hatrs.find().then(function(everyHatr)
+  if (req.session && req.session.hatr)  {
+    messages.find({}, null, {sort: {created_at: -1}},  function(err, messages) {
+    res.render('home', {hatr: req.session.hatr.username, messages: messages});
+  });
+}else{
+    res.render('welcome', {title: "welcome"});
+}
+});
 
-    res.render('home', {title: "home"});
+router.get('/message', authenticated, function(res,res) {
+   res.render('message', {title: 'write something'});
+});
 
+router.post('/message', authenticated, function (req,res) {
+  if (!req.body || !req.body.message) {
+    return res.render('error', {error:"You didn't write anything", title: 'error'
+  });
+}
+  messages.create({
+    body: req.body.message,
+    author: req.session.hatr._id
+  }, function(err, message) {
+    console.log(message);
+    if (err) return res.render('error', {error: 'message generation failed', title: 'error'});
+
+    console.log('message in database');
+    res.redirect('/hatr');
+    // res.redirect('/message/' + message._id);
+  });
+});
+
+router.get('/message/:id', (req, res) =>  {
+  messages.findOne({_id: req.params.id}), function(err, foundMessage) {
+    if (err) return res.render('error', {error: 'no message found', title: 'error'})
+    res.send(foundMessage);
+  }
+});
+
+router.get('/hatr', authenticated, (req, res) => {
+  console.log(req.session.hatr);
+  messages.find({author: req.session.hatr._id}, function(err, foundMessages) {
+    if (err) return res.render('error', {error:"Can't find that messages", title:"error"});
+    res.render('hatr', {messages: foundMessages, hatr: req.session.hatr});
+  })
+});
+
+router.get('/hatr/@:username', authenticated, function(req, res) {
+  hatrs.findOne({username: req.params.username}, function (err, foundUser) {
+    console.log(foundUser);
+    if (err) return res.render('error', {error:"Can't find that hatr", title:"error"});
+    messages.find({author: foundUser._id}, function(err, foundMessages)  {
+      console.log(foundMessages);
+      if (err) return res.render('error', {error:"Can't find that messages", title:"error"});
+      res.render('hatr', {messages: foundMessages});
+    })
+  })
 });
 
 router.get('/login', (req, res) => {
-  res.render('login', {title: "login"});
+  res.render('login', {
+    title: "login"
+  });
 });
 
 router.get('/signup', (req, res) => {
-  res.render('signup', {title: "signup"});
+  res.render('signup', {
+    title: "signup"
+  });
 });
 
 router.post('/login', (req, res) => {
+  hatrs.findOne({username: req.body.username}, function(err, foundHatr) {
+    if (err) return res.render('error', {
+      error: err,
+      title: "error"
+    });
+    if (!foundHatr) return res.render('error', {
+      error: 'no hatr',
+      title: 'error'
+    })
 
+    if (foundHatr.compare(req.body.userpass)) {
+      req.session.hatr = foundHatr;
+      req.session.save();
+
+      console.log('logged in as ' + req.session.hatr.username);
+
+      res.redirect('/hatr');
+    } else {
+      res.render('error', {
+        error: "incorrect credentials",
+        title: 'error'
+      });
+    }
+  })
 });
 
-router.post('/signup', (req, res) =>  {
+router.post('/signup', (req, res) => {
   if (req.body.newUser && req.body.newPass) {
-  hatrs.create({
-    username: req.body.newUser,
-    password: req.body.newPass
-  }).then(function(){
-    res.redirect('/');
-  });
-} else {
-  {
-    res.render('error', {
-      title: "error",
-      error: "There was an error!"
+    hatrs.create({
+      username: req.body.newUser,
+      password: req.body.newPass
+    }).then(function() {
+      req.session.hatr =
+      res.redirect('/');
     });
+  } else {
+    {
+      res.render('error', {
+        title: "error",
+        error: "There was an error!"
+      });
+    }
   }
-}
 });
 
 module.exports = router;

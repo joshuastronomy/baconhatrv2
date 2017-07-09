@@ -1,6 +1,5 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
 mongoose.Promise = require('bluebird');
 const pug = require('pug');
 const bodyParser = require('body-parser');
@@ -11,6 +10,12 @@ const app = express();
 mongoose.connect('mongodb://localhost:27017/baconhatr', {useMongoClient: true});
 
 app.set('view engine', 'pug');
+
+app.use(session({
+  secret: 'h8 dat bacon',
+  resave: false,
+  saveUninitialized: false
+}))
 
 app.use(bodyParser.urlencoded({
   extended: true

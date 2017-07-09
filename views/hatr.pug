@@ -1,17 +1,13 @@
 extends layout
 
 block content
-  h1 Home Page
-  h2 Also, we logged in. 
+  
+  h2 Welcome, #{hatr.username}
   
   ul
     each message in messages 
       - const words = message.body
-      - const author = message.author
+      - const author = hatr.username
       - const date = message.created_at
       li #{words} - #{author} -  #{date}
       br
-  
-  a(href="/message") new message
-  
-   
