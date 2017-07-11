@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
   body: {type: String, required: true},
-  author: {type: mongoose.Schema.Types.ObjectId, required: true},
+  author: {type: String, required: true},
   created_at: Date
 });
 

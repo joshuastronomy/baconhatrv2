@@ -2,8 +2,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
 const session = require('express-session');
-const hatrs = require('../models/models');
+const hatrs = require('../models/hatr');
 const messages = require('../models/message');
+const likes = require('../models/likes');
 
 const authenticated = function(req, res, next) {
   if (req.session && req.session.hatr) return next();
@@ -13,11 +14,17 @@ const authenticated = function(req, res, next) {
 router.get('/', (req, res) => {
   if (req.session && req.session.hatr)  {
     messages.find({}, null, {sort: {created_at: -1}},  function(err, messages) {
-    res.render('home', {hatr: req.session.hatr.username, messages: messages});
+    res.redirect('home');
   });
 }else{
     res.render('welcome', {title: "welcome"});
 }
+});
+
+router.get('/home', authenticated, function (req, res) {
+  messages.find({}, null, {sort: {created_at: -1}},  function(err, messages) {
+  res.render('home', {hatr: req.session.hatr.username, messages: messages});
+});
 });
 
 router.get('/message', authenticated, function(res,res) {
@@ -31,13 +38,13 @@ router.post('/message', authenticated, function (req,res) {
 }
   messages.create({
     body: req.body.message,
-    author: req.session.hatr._id
+    author: req.session.hatr.username
   }, function(err, message) {
     console.log(message);
     if (err) return res.render('error', {error: 'message generation failed', title: 'error'});
 
     console.log('message in database');
-    res.redirect('/hatr');
+    res.redirect('/home');
     // res.redirect('/message/' + message._id);
   });
 });
@@ -49,9 +56,13 @@ router.get('/message/:id', (req, res) =>  {
   }
 });
 
+// router.post('/like', function(req, res) {
+//
+// }
+
 router.get('/hatr', authenticated, (req, res) => {
   console.log(req.session.hatr);
-  messages.find({author: req.session.hatr._id}, function(err, foundMessages) {
+  messages.find({author: req.session.hatr.username}, function(err, foundMessages) {
     if (err) return res.render('error', {error:"Can't find that messages", title:"error"});
     res.render('hatr', {messages: foundMessages, hatr: req.session.hatr});
   })
@@ -61,10 +72,10 @@ router.get('/hatr/@:username', authenticated, function(req, res) {
   hatrs.findOne({username: req.params.username}, function (err, foundUser) {
     console.log(foundUser);
     if (err) return res.render('error', {error:"Can't find that hatr", title:"error"});
-    messages.find({author: foundUser._id}, function(err, foundMessages)  {
+    messages.find({author: foundUser.username}, function(err, foundMessages)  {
       console.log(foundMessages);
       if (err) return res.render('error', {error:"Can't find that messages", title:"error"});
-      res.render('hatr', {messages: foundMessages});
+      res.render('hatr', {messages: foundMessages, hatr: req.session.hatr});
     })
   })
 });
@@ -84,7 +95,7 @@ router.get('/signup', (req, res) => {
 router.post('/login', (req, res) => {
   hatrs.findOne({username: req.body.username}, function(err, foundHatr) {
     if (err) return res.render('error', {
-      error: err,
+      error: "Something went wrong.",
       title: "error"
     });
     if (!foundHatr) return res.render('error', {
@@ -98,7 +109,7 @@ router.post('/login', (req, res) => {
 
       console.log('logged in as ' + req.session.hatr.username);
 
-      res.redirect('/hatr');
+      res.redirect('/home');
     } else {
       res.render('error', {
         error: "incorrect credentials",
@@ -113,18 +124,45 @@ router.post('/signup', (req, res) => {
     hatrs.create({
       username: req.body.newUser,
       password: req.body.newPass
-    }).then(function() {
-      req.session.hatr =
+    }, function(err, newHatr)  {
+      console.log(newHatr);
+      if (err) return res.render('error', {error:'There was an error', title: "error"});
+
+      req.session.hatr = newHatr;
+      console.log(req.session.hatr);
       res.redirect('/');
-    });
-  } else {
-    {
-      res.render('error', {
-        title: "error",
-        error: "There was an error!"
-      });
-    }
-  }
+    })
+
+  //
+  //
+  //   .then(function() {
+  //     req.session.hatr =
+  //     res.redirect('/');
+  //   });
+  // } else {
+  //   {
+  //     res.render('error', {
+  //       title: "error",
+  //       error: "There was an error!"
+  //     });
+  //   }
+  // }
+}});
+
+router.get('/delete/:id', function(req, res) {
+  messages.findByIdAndRemove(req.params.id, function (err, message) {
+      const response = {
+          message: "Todo successfully deleted",
+          id: message._id
+      };
+      console.log(response);
+      res.redirect('/');
+  });
+});
+
+router.get('/logout', function(req, res) {
+  req.session.hatr = 0;
+  res.redirect('/');
 });
 
 module.exports = router;
