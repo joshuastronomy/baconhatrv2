@@ -56,9 +56,20 @@ router.get('/message/:id', (req, res) =>  {
   }
 });
 
-// router.post('/like', function(req, res) {
-//
-// }
+router.get('/like/:id', function(req, res) {
+  likes.create({
+    messageId: 'ObjectId(' + req.params.id + ')',
+    $inc: {total: 1}
+  }).then(function(partialLike) {
+    partialLike.likes = [{
+      author: req.session.hatr.username,
+      state: true
+    }];
+    partialLike.save().then(function()  {
+      res.redirect('/');
+    });
+  });
+});
 
 router.get('/hatr', authenticated, (req, res) => {
   console.log(req.session.hatr);
@@ -152,7 +163,7 @@ router.post('/signup', (req, res) => {
 router.get('/delete/:id', function(req, res) {
   messages.findByIdAndRemove(req.params.id, function (err, message) {
       const response = {
-          message: "Todo successfully deleted",
+          message: "Message successfully deleted",
           id: message._id
       };
       console.log(response);

@@ -2,10 +2,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 
 const likeSchema = new mongoose.Schema({
-  messageId: {type: mongoose.Schema.ObjectId, required: true},
+  messageId: {type: String, required: true},
   total: Number,
   likes:[{
-      _id: {type: mongoose.Schema.ObjectId},
       author: String,
       state: Boolean
   }]
